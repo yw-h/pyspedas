@@ -55,6 +55,31 @@ def mrgeo(mag_temp, pos_var_name):
 
     return (x_basis, y_basis, z_basis)
 
+def rgeo(mag_temp, pos_var_name):
+    """
+    Generates the 'mrgeo' transformation matrix
+    """
+    mag_data = get_data(mag_temp)
+    if pos_var_name is None:
+        print('FX  requires pos_var_name to be set for mRgeo coordinate transformation')
+        return None
+    # pos_data must be in gei coordinate
+    if get_coords(pos_var_name) != 'gei':
+        print('FX  requires position data to be in gei coordinates to generate mRgeo transformation')
+        return None
+    tinterpol(pos_var_name, mag_temp) # create pos_var_name-itrp
+    pos_interp_name = pos_var_name + '-itrp'
+    pos_data_temp = tnormalize(pos_interp_name, return_data=True)
+   
+    # create orthonomal basis set
+    z_basis = tnormalize(mag_temp, return_data=True)
+    y_basis = tcrossp(z_basis, pos_data_temp, return_data=True)
+    y_basis = tnormalize(y_basis, return_data=True)
+    x_basis = tcrossp(y_basis, z_basis, return_data=True)
+
+    return (x_basis, y_basis, z_basis)
+
+
 def fac_matrix_make(mag_var_name, other_dim='xgse', pos_var_name=None, newname=None):
     """
     Generates a field aligned coordinate transformation matrix
@@ -96,10 +121,11 @@ def fac_matrix_make(mag_var_name, other_dim='xgse', pos_var_name=None, newname=N
     other_dim = other_dim.lower()
 
     if other_dim == 'xgse':
-        print(123)
         basis = xgse(mag_var_name)
     elif other_dim == 'mrgeo':
         basis = mrgeo(mag_var_name, pos_var_name)
+    elif other_dim == 'rgeo':
+        basis = rgeo(mag_var_name, pos_var_name)
     fac_output = np.zeros((len(mag_data.times), 3, 3))
     fac_output[:, 0, :] = basis[0]
     fac_output[:, 1, :] = basis[1]
